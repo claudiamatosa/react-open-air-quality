@@ -2,7 +2,6 @@ import React, { Component } from 'react';
 import logo from './images/cyf.png';
 import './styles/App.css';
 import CountriesList from './components/CountriesList';
-import MeasurementDetails from './components/MeasurementDetails';
 
 class App extends Component {
   constructor(props) {
@@ -10,8 +9,12 @@ class App extends Component {
     this.state = {
       // Populates the dropdown box ("CountriesList" component)
       countriesList: [],
-      // When a country is selected, contains the last measurement ("MeasurementDetails" component)
-      measurementData: null,
+      // We are reading the route parameters here too, so we can fill the dropdown
+      // boxes with the information we get from the url.
+      //
+      // For example: Navigating to /country/AR will fill the country
+      // dropdown box with "Argentina". (Launch the server and give it a try!)
+      selectedCountry: props.params.countryCode,
     }
   }
 
@@ -39,7 +42,15 @@ class App extends Component {
     during "onCountryChange".
   */
   onSubmitCountry = () => {
-    this.getCountryStatistics(this.state.selectedCountry);
+    // Instead of updating the data ourselves, we navigate to a url that contains
+    // the countryCode. The MeasurementDetails component will take care of the rest!
+    const destinationUrl = `/country/${this.state.selectedCountry}`;
+
+    // "router" is a special prop given to App by react-router. It allows doing several
+    // things, including navigating between pages.
+    //
+    // Using "push" will change the url without refreshing.
+    this.props.router.push(destinationUrl);
   }
 
   render() {
@@ -65,12 +76,8 @@ class App extends Component {
           </div>
         </div>
 
-        {(
-          // If there is no measurement data, we want to display "Select a country, please".
-          this.state.measurementData ?
-          <MeasurementDetails data={this.state.measurementData} /> :
-          <div>Select a country please.</div>
-        )}
+        {/* The component in the routes.js file will go here. */}
+        { this.props.children }
       </div>
     );
   }
@@ -98,29 +105,6 @@ class App extends Component {
       .then(data => {
         this.setState({ countriesList: data.results });
       });
-  }
-
-  /*
-    Load the statistics for the given country code and limit to pollutants co and pm25.
-
-    The response will come as an object, containing an array of "results". We will select
-    the first result and save it to this.state.measurementData.
-
-    Full response: https://api.openaq.org/v1/measurements?country=IN
-  */
-  getCountryStatistics(countryCode) {
-    // If there is no country selected, we do not make a call to the API
-    if(countryCode === '-1' || countryCode === undefined) return;
-
-    const url = `https://api.openaq.org/v1/measurements?country=${countryCode}&parameter[]=co&parameter[]=pm25`;
-
-    fetch(url)
-      .then(response => response.json())
-      .then(data => {
-        // The data comes back as an object with an array called "results".
-        // We take the first element of this array, as it contains our measurement data.
-        this.setState({ measurementData: data.results[0] });
-    });
   }
 }
 
